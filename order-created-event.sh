@@ -1,0 +1,1 @@
+curl -X POST -H "Content-Type: application/json" -d "{\"orderDetails\" : {\"customerId\" : $2, \"orderTotal\" : $3}}" http://localhost:10000/events/orderServiceEvents/io.eventuate.examples.tram.ordersandcustomers.orders.domain.Order/$1/io.eventuate.examples.tram.ordersandcustomers.orders.domain.events.OrderCreatedEvent/$4
