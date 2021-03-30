@@ -18,15 +18,46 @@ func handleCreateCustomerRequest(dataBase *gorm.DB, w http.ResponseWriter, r *ht
 	var createCustomerRequest CreateCustomerRequest
 	json.Unmarshal(body, &createCustomerRequest)
 
-	customer := Customer{Name: createCustomerRequest.Name, Money: createCustomerRequest.Money}
-	dataBase.Create(&customer)
+	var customerId int64
 
-	publishEvent(
-		dataBase,
-		&CustomerCreatedEvent{customer.Name, customer.Money},
-		"io.eventuate.examples.tram.ordersandcustomers.customers.domain.Customer",
-		 customer.Id,
-		"io.eventuate.examples.tram.ordersandcustomers.customers.domain.events.CustomerCreatedEvent")
+	err := dataBase.Transaction(func(tx *gorm.DB) error {
+		customer := Customer{Name: createCustomerRequest.Name, CreditLimit: int64(createCustomerRequest.CreditLimit.Amount * 100)}
+		err := tx.Create(&customer).Error
+
+		if err != nil {
+		  return err
+		}
+
+		customerId = customer.Id
+	  
+		err = publishEvent(
+			tx,
+			&CustomerCreatedEvent{customer.Name, createCustomerRequest.CreditLimit},
+			"io.eventuate.examples.tram.ordersandcustomers.customers.domain.Customer",
+			 customer.Id,
+			"io.eventuate.examples.tram.ordersandcustomers.customers.domain.events.CustomerCreatedEvent")
+	  
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	response := CreateCustomerResponse{customerId}	
+
+	payload, err := json.Marshal(response)
+
+	if err != nil {
+		panic(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(payload)
 }
 
 func handleOrderCreatedEvent(dataBase *gorm.DB, w http.ResponseWriter, r *http.Request) {
@@ -44,7 +75,13 @@ func handleOrderCreatedEvent(dataBase *gorm.DB, w http.ResponseWriter, r *http.R
 
 	json.Unmarshal(body, &orderCreatedEvent)
 
-	reserveCredit(dataBase, orderCreatedEvent.OrderDetails.CustomerId, orderId, orderCreatedEvent.OrderDetails.OrderTotal)
+	err = dataBase.Transaction(func(tx *gorm.DB) error {
+		return reserveCredit(tx, orderCreatedEvent.OrderDetails.CustomerId, orderId, int64(orderCreatedEvent.OrderDetails.OrderTotal.Amount * 100))
+	})
+
+	if (err != nil) {
+		panic(err)
+	}
 }
 
 func handleOrderCanceledEvent(dataBase *gorm.DB, w http.ResponseWriter, r *http.Request) {
@@ -59,23 +96,27 @@ func handleOrderCanceledEvent(dataBase *gorm.DB, w http.ResponseWriter, r *http.
 	dataBase.Where("customerId = ? and orderId = ?", orderCanceledEvent.OrderDetails.CustomerId, aggregateId).Delete(CreditReservation{})
 }
 
-func reserveCredit(dataBase *gorm.DB, customerId int64, orderId int64, orderTotal int64) {
+func reserveCredit(dataBase *gorm.DB, customerId int64, orderId int64, orderTotal int64) error {
 	customer := Customer{}
 
 	err := dataBase.First(&customer, customerId).Error
 
 	if (err != nil) {
 		if (errors.Is(err, gorm.ErrRecordNotFound)) {
-			publishEvent(
+			err = publishEvent(
 				dataBase,
 				&CustomerValidationFailedEvent{OrderEvent{orderId}},
 				"io.eventuate.examples.tram.ordersandcustomers.customers.domain.Customer",
 				customerId,
 				"io.eventuate.examples.tram.ordersandcustomers.customers.domain.events.CustomerValidationFailedEvent")
 
-			return
+			if err != nil {
+				return err
+			}
+
+			return nil
 		} else {
-			panic(err)
+			return err
 		}
 	}
 
@@ -85,25 +126,39 @@ func reserveCredit(dataBase *gorm.DB, customerId int64, orderId int64, orderTota
 		sum = sum + reservation.Money
 	}
 
-	if (customer.Money - sum < orderTotal) {
-		publishEvent(
+	if (customer.CreditLimit - sum < orderTotal) {
+		err := publishEvent(
 			dataBase,
 			&CustomerCreditReservationFailedEvent{OrderEvent{orderId}},
 			"io.eventuate.examples.tram.ordersandcustomers.customers.domain.Customer",
 			customerId,
 			"io.eventuate.examples.tram.ordersandcustomers.customers.domain.events.CustomerCreditReservationFailedEvent")
 
-		return
+		if err != nil {
+			return err
+		}
+
+		return nil
 	}
 
 	customer.CreditReservations = append(customer.CreditReservations, CreditReservation{orderId, customerId, orderTotal})
 
-	dataBase.Save(&customer)
+	err = dataBase.Save(&customer).Error
 
-	publishEvent(
+	if err != nil {
+		return err
+	}
+
+	err = publishEvent(
 		dataBase,
 		&CustomerCreditReservedEvent{OrderEvent{orderId}},
 		"io.eventuate.examples.tram.ordersandcustomers.customers.domain.Customer",
 		customerId,
 		"io.eventuate.examples.tram.ordersandcustomers.customers.domain.events.CustomerCreditReservedEvent")
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

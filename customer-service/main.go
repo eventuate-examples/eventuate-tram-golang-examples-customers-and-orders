@@ -21,17 +21,18 @@ func route(dataBase *gorm.DB) {
 
 	router.
 		HandleFunc(
-			"/events/orderServiceEvents/io.eventuate.examples.tram.ordersandcustomers.orders.domain.Order/{aggregateId}/io.eventuate.examples.tram.ordersandcustomers.orders.domain.events.OrderCreatedEvent/{eventId}",
+			"/events/orderserviceevents/io.eventuate.examples.tram.ordersandcustomers.orders.domain.Order/{aggregateId}/io.eventuate.examples.tram.ordersandcustomers.orders.domain.events.OrderCreatedEvent/{eventId}",
 			wrapHandler(dataBase, handleOrderCreatedEvent)).
 		Methods("POST")
 
 	router.
 		HandleFunc(
-			"/events/orderServiceEvents/io.eventuate.examples.tram.ordersandcustomers.orders.domain.Order/{aggregateId}/io.eventuate.examples.tram.ordersandcustomers.orders.domain.events.OrderCanceledEvent/{eventId}",
+			"/events/orderserviceevents/io.eventuate.examples.tram.ordersandcustomers.orders.domain.Order/{aggregateId}/io.eventuate.examples.tram.ordersandcustomers.orders.domain.events.OrderCanceledEvent/{eventId}",
 			wrapHandler(dataBase, handleOrderCanceledEvent)).
 		Methods("POST")
 
-	log.Fatal(http.ListenAndServe(":10000", router))
+	log.Println("Starting")	
+	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
 
@@ -42,7 +43,7 @@ func wrapHandler(database *gorm.DB, handler func(*gorm.DB, http.ResponseWriter, 
 }
 
 func initDatabase() *gorm.DB {
-	dsn := "mysqluser:mysqlpw@tcp(127.0.0.1:3306)/eventuate?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := "mysqluser:mysqlpw@tcp(172.17.0.1:3306)/eventuate?charset=utf8mb4&parseTime=True&loc=Local"
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 

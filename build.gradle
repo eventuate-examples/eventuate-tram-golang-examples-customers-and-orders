@@ -1,0 +1,51 @@
+buildscript {
+    repositories {
+        jcenter()
+        mavenCentral()
+        mavenLocal()
+    }
+    dependencies {
+        classpath "com.avast.gradle:gradle-docker-compose-plugin:0.12.0"
+    }
+}
+
+apply plugin: 'docker-compose'
+
+subprojects {
+
+    apply plugin: "java"
+
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+        maven {
+            url "https://dl.bintray.com/eventuateio-oss/eventuate-maven-release"
+        }
+        eventuateMavenRepoUrl.split(',').each { repoUrl -> maven { url repoUrl } }
+    }
+}
+
+dockerCompose {
+    environment.put "EVENTUATE_COMMON_VERSION", eventuateCommonImageVersion
+    environment.put "EVENTUATE_CDC_VERSION", eventuateCdcImageVersion
+    environment.put "EVENTUATE_CDC_KAFKA_ENABLE_BATCH_PROCESSING", eventuateCdcKafkaEnableBatchProcessing
+
+    removeOrphans = true
+
+    mysqlbinlog {
+        projectName = null
+        useComposeFiles = ["docker-compose-mysql-binlog.yml"]
+        removeContainers = project.ext.removeContainers
+    }
+
+    mysqlbinloginfrastructure {
+        projectName = null
+        useComposeFiles = ["docker-compose-mysql-binlog.yml"]
+        startedServices = ["cdc-service", "zipkin", "proxy"]
+        removeContainers = project.ext.removeContainers
+    }
+}

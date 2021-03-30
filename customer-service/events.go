@@ -10,11 +10,11 @@ type OrderCanceledEvent struct {
 
 type CustomerCreatedEvent struct {
 	Name string `json:"name"`
-	CreditLimit int64 `json:"creditLimit"`
+	CreditLimit Money `json:"creditLimit"`
 }
 
 type OrderEvent struct {
-	OrderId int64
+	OrderId int64 `json:"orderId"`
 }
 
 type CustomerValidationFailedEvent struct {

@@ -22,6 +22,6 @@ func (Message) TableName() string {
 type Customer struct {
 	Id int64 `gorm:"primaryKey;autoIncrement:true"`
 	Name string
-	Money int64
+	CreditLimit int64
 	CreditReservations []CreditReservation
 }
