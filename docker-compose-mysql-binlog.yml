@@ -42,6 +42,12 @@ services:
       - "8082:8080"
     depends_on:
       - mysql
+    environment:
+      DATABASE_USER: mysqluser
+      DATABASE_PASSWORD: mysqlpw
+      DATABASE_HOST: mysql
+      DATABASE_PORT: 3306
+      DATABASE_NAME: eventuate
 
   proxy:
     image: test-eventuate-tram-http-proxy

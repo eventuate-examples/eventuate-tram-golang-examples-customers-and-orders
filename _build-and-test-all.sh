@@ -10,10 +10,6 @@ dockerinfrastructure="./gradlew ${DATABASE?}${MODE?}infrastructureCompose"
 ${dockerall}Down -P removeContainers=true
 ${dockerinfrastructure}Up
 
-cd customer-service
-go build .
-cd ..
-
 echo 'show databases;' | ./mysql-cli.sh -i
 
 ${dockerall}Build

@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 
@@ -43,7 +45,16 @@ func wrapHandler(database *gorm.DB, handler func(*gorm.DB, http.ResponseWriter, 
 }
 
 func initDatabase() *gorm.DB {
-	dsn := "mysqluser:mysqlpw@tcp(172.17.0.1:3306)/eventuate?charset=utf8mb4&parseTime=True&loc=Local"
+	user := os.Getenv("DATABASE_USER")
+	password := os.Getenv("DATABASE_PASSWORD")
+	host := os.Getenv("DATABASE_HOST")
+	port := os.Getenv("DATABASE_PORT")
+	name := os.Getenv("DATABASE_NAME")
+
+	dsn := fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?charset=utf8mb4&parseTime=True&loc=Local", user, password, host, port, name)
+
+	log.Println("database connection string:")
+	log.Println(dsn)
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 
