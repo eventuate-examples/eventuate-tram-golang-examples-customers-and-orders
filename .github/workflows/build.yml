@@ -23,6 +23,13 @@ jobs:
     - name: Build
       run: ./build-and-test-all-mysql-binlog.sh
 
+    - name: Save test results
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: test-reports
+        path: ./end-to-end-tests/build/reports
+
     - name: get container logs
       run: ./.github/workflows/print-container-logs.sh
       if: ${{ always() }}
