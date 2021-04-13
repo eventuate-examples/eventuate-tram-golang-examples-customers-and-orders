@@ -76,7 +76,7 @@ public class CustomersAndOrdersEndToEndTest {
     cancelOrder(orderId);
     assertOrderState(orderId, OrderState.CANCELLED);
 
-    Eventually.eventually(120, 500, TimeUnit.MILLISECONDS, () -> {
+    Eventually.eventually(360, 500, TimeUnit.MILLISECONDS, () -> {
       CustomerView customerView = getCustomerView(customerId);
       Map<Long, OrderInfo> orders = customerView.getOrders();
       assertThat(orders.get(orderId).getState(), is(OrderState.CANCELLED));
@@ -136,7 +136,7 @@ public class CustomersAndOrdersEndToEndTest {
   }
 
   private void assertOrderState(Long id, OrderState expectedState) {
-    Eventually.eventually(120, 500, TimeUnit.MILLISECONDS, () -> {
+    Eventually.eventually(360, 500, TimeUnit.MILLISECONDS, () -> {
       ResponseEntity<GetOrderResponse> response =
               restTemplate.getForEntity(baseUrlOrders("orders/" + id), GetOrderResponse.class);
 

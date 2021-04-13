@@ -50,7 +50,7 @@ services:
       DATABASE_NAME: eventuate
 
   proxy:
-    image: test-eventuate-tram-http-proxy
+    image: eventuateio/eventuate-tram-http-proxy-service:$EVENTUATE_PROXY_VERSION
     ports:
       - "8098:8080"
     depends_on:
@@ -99,6 +99,7 @@ services:
       - MYSQL_ROOT_PASSWORD=rootpassword
       - MYSQL_USER=mysqluser
       - MYSQL_PASSWORD=mysqlpw
+      - USE_DB_ID=true
 
   mongodb:
     image: mongo:3.6
