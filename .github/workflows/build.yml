@@ -30,6 +30,10 @@ jobs:
         name: test-reports
         path: ./end-to-end-tests/build/reports
 
+    - name: print messages
+      run: ./.github/workflows/dump-messages.sh
+      if: ${{ always() }}
+
     - name: get container logs
       run: ./.github/workflows/print-container-logs.sh
       if: ${{ always() }}
