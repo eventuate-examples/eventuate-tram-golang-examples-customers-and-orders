@@ -19,6 +19,7 @@ services:
       SPRING_SLEUTH_ENABLED: "true"
       SPRING_SLEUTH_SAMPLER_PROBABILITY: 1
       SPRING_ZIPKIN_BASE_URL: http://zipkin:9411/
+      EVENTUATE_OUTBOX_ID: 1
 
   order-history-service:
     image: eventuateexamples/eventuate-tram-examples-customers-and-orders-order-history-service
