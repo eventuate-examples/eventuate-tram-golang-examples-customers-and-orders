@@ -69,6 +69,7 @@ services:
       EVENTUATE_SUBSCRIPTION_EVENT_ORDERSERVICEEVENTS_AGGREGATE: io.eventuate.examples.tram.ordersandcustomers.orders.domain.Order
       EVENTUATE_SUBSCRIPTION_EVENT_ORDERSERVICEEVENTS_EVENTS: io.eventuate.examples.tram.ordersandcustomers.orders.domain.events.OrderCreatedEvent
       EVENTUATE_SUBSCRIPTION_EVENT_ORDERSERVICEEVENTS_BASEURL: http://customer-service:8080/events
+      _JAVA_OPTIONS: -Dlogging.level.io.eventuate=DEBUG
 
   zookeeper:
     image: eventuateio/eventuate-zookeeper:$EVENTUATE_COMMON_VERSION
