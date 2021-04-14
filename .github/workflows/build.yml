@@ -32,7 +32,7 @@ jobs:
 
     - name: print messages
       run: ./.github/workflows/dump-messages.sh
-      if: ${{ always() }}
+      if: ${{ failure() }}
 
     - name: get container logs
       run: ./.github/workflows/print-container-logs.sh
