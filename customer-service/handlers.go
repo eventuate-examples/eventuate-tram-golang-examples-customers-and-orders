@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -62,9 +63,13 @@ func handleCreateCustomerRequest(dataBase *gorm.DB, w http.ResponseWriter, r *ht
 }
 
 func handleOrderCreatedEvent(dataBase *gorm.DB, w http.ResponseWriter, r *http.Request) {
-	log.Println("handleOrderCreatedEvent started execution")
-
 	aggregateId := mux.Vars(r)["aggregateId"]
+
+	logf := func(message string) {
+		log.Println(fmt.Sprintf("handleOrderCreatedEvent (orderId = %v); %v", aggregateId, message))
+	}
+
+	logf("started")
 
 	orderId, err := strconv.ParseInt(aggregateId, 10, 64)
 
@@ -86,13 +91,17 @@ func handleOrderCreatedEvent(dataBase *gorm.DB, w http.ResponseWriter, r *http.R
 		panic(err)
 	}
 
-	log.Println("handleOrderCreatedEvent finished execution")
+	logf("finished")
 }
 
 func handleOrderCanceledEvent(dataBase *gorm.DB, w http.ResponseWriter, r *http.Request) {
-	log.Println("handleOrderCanceledEvent started execution")
-
 	aggregateId := mux.Vars(r)["aggregateId"]
+
+	logf := func(message string) {
+		log.Println(fmt.Sprintf("handleOrderCanceledEvent (orderId = %v); %v", aggregateId, message))
+	}
+
+	logf("started")
 
 	body, _ := ioutil.ReadAll(r.Body)
 
@@ -102,11 +111,14 @@ func handleOrderCanceledEvent(dataBase *gorm.DB, w http.ResponseWriter, r *http.
 
 	dataBase.Where("customerId = ? and orderId = ?", orderCanceledEvent.OrderDetails.CustomerId, aggregateId).Delete(CreditReservation{})
 
-	log.Println("handleOrderCanceledEvent finished execution")
+	logf("finished")
 }
 
 func reserveCredit(dataBase *gorm.DB, customerId int64, orderId int64, orderTotal int64) error {
-	log.Println("reserveCredit started execution")
+	logf := func(message string) {
+		log.Println(fmt.Sprintf("reserveCredit (customerId = %v, orderId = %v, orderTotal = %v); %v",
+			customerId, orderId, orderTotal, message))
+	}
 
 	customer := Customer{}
 
@@ -114,7 +126,7 @@ func reserveCredit(dataBase *gorm.DB, customerId int64, orderId int64, orderTota
 
 	if (err != nil) {
 		if (errors.Is(err, gorm.ErrRecordNotFound)) {
-			log.Println("reserveCredit is publishing CustomerValidationFailedEvent")
+			logf("publishing CustomerValidationFailedEvent")
 
 			err = publishEvent(
 				dataBase,
@@ -127,10 +139,7 @@ func reserveCredit(dataBase *gorm.DB, customerId int64, orderId int64, orderTota
 				return err
 			}
 
-			log.Println("reserveCredit published CustomerValidationFailedEvent")
-
-			log.Println("reserveCredit finished execution")
-
+			logf("published CustomerValidationFailedEvent")
 			return nil
 		} else {
 			return err
@@ -144,7 +153,7 @@ func reserveCredit(dataBase *gorm.DB, customerId int64, orderId int64, orderTota
 	}
 
 	if (customer.CreditLimit - sum < orderTotal) {
-		log.Println("reserveCredit is publishing CustomerCreditReservationFailedEvent")
+		logf("publishing CustomerCreditReservationFailedEvent")
 
 		err := publishEvent(
 			dataBase,
@@ -157,9 +166,7 @@ func reserveCredit(dataBase *gorm.DB, customerId int64, orderId int64, orderTota
 			return err
 		}
 
-		log.Println("reserveCredit published CustomerCreditReservationFailedEvent")
-
-		log.Println("reserveCredit finished execution")
+		logf("published CustomerCreditReservationFailedEvent")
 
 		return nil
 	}
@@ -172,7 +179,7 @@ func reserveCredit(dataBase *gorm.DB, customerId int64, orderId int64, orderTota
 		return err
 	}
 
-	log.Println("reserveCredit is publishing CustomerCreditReservedEvent")
+	logf("publishing CustomerCreditReservedEvent")
 
 	err = publishEvent(
 		dataBase,
@@ -185,9 +192,7 @@ func reserveCredit(dataBase *gorm.DB, customerId int64, orderId int64, orderTota
 		return err
 	}
 
-	log.Println("reserveCredit published CustomerCreditReservedEvent")
-
-	log.Println("reserveCredit finished execution")
+	logf("published CustomerCreditReservedEvent")
 
 	return nil
 }

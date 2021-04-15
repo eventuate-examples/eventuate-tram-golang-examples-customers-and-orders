@@ -1,7 +1,7 @@
 version: '3'
 services:
   order-service:
-    image: eventuateexamples/eventuate-tram-examples-customers-and-orders-order-service
+    image: eventuateexamples/eventuate-tram-examples-customers-and-orders-order-service:development-202104132017
     ports:
       - "8081:8080"
     depends_on:
@@ -22,7 +22,7 @@ services:
       EVENTUATE_OUTBOX_ID: 1
 
   order-history-service:
-    image: eventuateexamples/eventuate-tram-examples-customers-and-orders-order-history-service
+    image: eventuateexamples/eventuate-tram-examples-customers-and-orders-order-history-service:development-202104132017
     ports:
       - "8083:8080"
     depends_on:
