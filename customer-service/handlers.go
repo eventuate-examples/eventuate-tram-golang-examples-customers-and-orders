@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -63,6 +65,12 @@ func handleCreateCustomerRequest(dataBase *gorm.DB, w http.ResponseWriter, r *ht
 func handleOrderCreatedEvent(dataBase *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	aggregateId := mux.Vars(r)["aggregateId"]
 
+	logf := func(message string) {
+		log.Println(fmt.Sprintf("handleOrderCreatedEvent (orderId = %v); %v", aggregateId, message))
+	}
+
+	logf("started")
+
 	orderId, err := strconv.ParseInt(aggregateId, 10, 64)
 
 	if (err != nil) {
@@ -82,10 +90,18 @@ func handleOrderCreatedEvent(dataBase *gorm.DB, w http.ResponseWriter, r *http.R
 	if (err != nil) {
 		panic(err)
 	}
+
+	logf("finished")
 }
 
 func handleOrderCanceledEvent(dataBase *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	aggregateId := mux.Vars(r)["aggregateId"]
+
+	logf := func(message string) {
+		log.Println(fmt.Sprintf("handleOrderCanceledEvent (orderId = %v); %v", aggregateId, message))
+	}
+
+	logf("started")
 
 	body, _ := ioutil.ReadAll(r.Body)
 
@@ -94,15 +110,24 @@ func handleOrderCanceledEvent(dataBase *gorm.DB, w http.ResponseWriter, r *http.
 	json.Unmarshal(body, &orderCanceledEvent)
 
 	dataBase.Where("customerId = ? and orderId = ?", orderCanceledEvent.OrderDetails.CustomerId, aggregateId).Delete(CreditReservation{})
+
+	logf("finished")
 }
 
 func reserveCredit(dataBase *gorm.DB, customerId int64, orderId int64, orderTotal int64) error {
+	logf := func(message string) {
+		log.Println(fmt.Sprintf("reserveCredit (customerId = %v, orderId = %v, orderTotal = %v); %v",
+			customerId, orderId, orderTotal, message))
+	}
+
 	customer := Customer{}
 
 	err := dataBase.First(&customer, customerId).Error
 
 	if (err != nil) {
 		if (errors.Is(err, gorm.ErrRecordNotFound)) {
+			logf("publishing CustomerValidationFailedEvent")
+
 			err = publishEvent(
 				dataBase,
 				&CustomerValidationFailedEvent{OrderEvent{orderId}},
@@ -114,6 +139,7 @@ func reserveCredit(dataBase *gorm.DB, customerId int64, orderId int64, orderTota
 				return err
 			}
 
+			logf("published CustomerValidationFailedEvent")
 			return nil
 		} else {
 			return err
@@ -127,6 +153,8 @@ func reserveCredit(dataBase *gorm.DB, customerId int64, orderId int64, orderTota
 	}
 
 	if (customer.CreditLimit - sum < orderTotal) {
+		logf("publishing CustomerCreditReservationFailedEvent")
+
 		err := publishEvent(
 			dataBase,
 			&CustomerCreditReservationFailedEvent{OrderEvent{orderId}},
@@ -137,6 +165,8 @@ func reserveCredit(dataBase *gorm.DB, customerId int64, orderId int64, orderTota
 		if err != nil {
 			return err
 		}
+
+		logf("published CustomerCreditReservationFailedEvent")
 
 		return nil
 	}
@@ -149,6 +179,8 @@ func reserveCredit(dataBase *gorm.DB, customerId int64, orderId int64, orderTota
 		return err
 	}
 
+	logf("publishing CustomerCreditReservedEvent")
+
 	err = publishEvent(
 		dataBase,
 		&CustomerCreditReservedEvent{OrderEvent{orderId}},
@@ -159,6 +191,8 @@ func reserveCredit(dataBase *gorm.DB, customerId int64, orderId int64, orderTota
 	if err != nil {
 		return err
 	}
+
+	logf("published CustomerCreditReservedEvent")
 
 	return nil
 }
